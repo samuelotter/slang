@@ -14,6 +14,7 @@ typedef struct {
 
 typedef struct {
   Type* type;
+  struct Scope* scope;
 } Reference;
 
 typedef struct Resource {
@@ -24,6 +25,10 @@ typedef struct Resource {
 typedef struct {
   Resource* first;
 } Scope;
+
+// Macros ----------------------------------------------------------------------
+
+#define scopeof(REF) ((Scope*)(REF - sizeof(Scope*)))
 
 // API -------------------------------------------------------------------------
 
