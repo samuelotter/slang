@@ -1,5 +1,6 @@
 #include "scope.h"
 #include "list.h"
+#include "tuple.h"
 
 #include <stdio.h>
 
@@ -26,7 +27,11 @@ int main(int argc, char** argv) {
 
   list_foldl(b, var, &print_val);
 
+  Tuple* tuple = tuple_new(scope, 3);
+  tuple_set(tuple, 0, var);
+
   printf("var = %d\n", *var);
 
   scope_destroy(scope);
+  return 0;
 }
