@@ -22,6 +22,8 @@ typedef struct Resource {
   Reference         reference;
 } Resource;
 
+typedef void* Ref;
+
 typedef struct {
   Resource* first;
 } Scope;
@@ -29,13 +31,14 @@ typedef struct {
 // Macros ----------------------------------------------------------------------
 
 #define scopeof(REF) ((Scope*)(REF - sizeof(Scope*)))
+#define reftype(REF) ((Type*)(REF - sizeof(Scope*) - sizeof(Type*)))
 
 // API -------------------------------------------------------------------------
 
 Scope* scope_new();
 void   scope_destroy(Scope* scope);
 
-void*  scope_alloc(Scope* scope, size_t size);
+Ref    scope_alloc(Scope* scope, size_t size);
 void*  scope_free(Scope* scope, Resource* resource);
 
 #endif /* _SCOPE_H_ */

@@ -9,14 +9,24 @@ int* do_stuff(Scope* scope) {
   return var;
 }
 
+Ref print_val(Ref count, Ref value) {
+  int* c = count;
+  printf("%d: %p\n", *c, value);
+  *c = *c + 1;
+  return count;
+}
+
 int main(int argc, char** argv) {
   Scope* scope = scope_new();
 
-  List* a = list_new(scope, (void*)1);
-  List* b = list_cons(a, (void*)2);
+  List* a = list_new(scope, (Ref)2);
+  List* b = list_cons(a, (Ref)1);
 
   int* var = do_stuff(scope);
-  printf("var = %d, b = %p\n", *var, b->value);
+
+  list_foldl(b, var, &print_val);
+
+  printf("var = %d\n", *var);
 
   scope_destroy(scope);
 }

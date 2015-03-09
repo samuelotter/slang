@@ -19,7 +19,7 @@ Scope* scope_new() {
   return scope;
 }
 
-void* scope_alloc(Scope* scope, size_t size) {
+Ref scope_alloc(Scope* scope, size_t size) {
   Resource* resource = malloc(sizeof(Resource) + sizeof(size));
   scope_append(scope, resource);
   return resource + sizeof(Resource);
