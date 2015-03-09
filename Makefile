@@ -1,6 +1,6 @@
 TARGET   = bin/test
 CC       = gcc
-CC_FLAGS = -std=c11 -Wall -g
+CC_FLAGS = -std=c11 -Wall -g -D_DEFAULT_SOURCE
 
 SOURCE_FILES = $(wildcard src/*.c)
 OBJECT_FILES = $(SOURCE_FILES:src/%.c=build/%.o)
