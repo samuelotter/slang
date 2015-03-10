@@ -3,56 +3,58 @@
  */
 
 #include <stdlib.h>
+#include <assert.h>
 
 #include "scope.h"
 
 // Forward decls. --------------------------------------------------------------
 
-void      scope_append(Scope* scope, Resource* resource);
-void      resource_append(Resource* head, Resource* resource);
-Resource* destroy_resource(Resource* resource);
+Block* alloc_block();
 
 // API -------------------------------------------------------------------------
 
 Scope* scope_new() {
   Scope* scope = (Scope*)malloc(sizeof(Scope));
+  scope->free_blocks = NULL;
   return scope;
 }
 
 Ref scope_alloc(Scope* scope, size_t size) {
-  Resource* resource = malloc(sizeof(Resource) + sizeof(size));
-  scope_append(scope, resource);
-  return resource + sizeof(Resource);
+  assert(scope != NULL);
+  Block* block = scope->free_blocks;
+  if (block == NULL) {
+    block = alloc_block(scope);
+  } else if (size > block->end - block->head) {
+    block = alloc_block(scope);
+  }
+  // TODO Handle sizes > BLOCK_SIZE.
+  void *ptr   = block->head;
+  block->head += size;
+  return ptr;
 }
 
 void scope_destroy(Scope* scope) {
-  Resource* resource = scope->first;
-  while(resource != NULL) {
-    resource = (Resource*)destroy_resource(resource);
+  Block* block = scope->free_blocks;
+  while(block != NULL) {
+    Block* tmp = block->next;
+    free(block);
+    block = tmp;
   }
+  free(scope);
 }
 
 // Internal Functions ----------------------------------------------------------
 
-Resource* destroy_resource(Resource* resource) {
-  Resource* next = resource->next;
-  free(resource);
-  return next;
-}
-
-void scope_append(Scope* scope, Resource* resource) {
-  if (scope->first == NULL) {
-    scope->first = resource;
-    return;
-  } else {
-    resource_append(scope->first, resource);
+Block* alloc_block(Scope *scope) {
+  Block* block = (Block*)aligned_alloc(PAGE_SIZE, BLOCK_SIZE);
+  block->type  = 1;
+  block->scope = scope;
+  block->next  = scope->free_blocks;
+  scope->free_blocks = block;
+  if (block->next != NULL) {
+    block->next->prev = block;
   }
-}
-
-void resource_append(Resource* head, Resource* resource) {
-  Resource* current = head;
-  while (current->next != NULL) {
-    current = head->next;
-  }
-  current->next = resource;
+  block->head = block + sizeof(Block);
+  block->end  = block + BLOCK_SIZE;
+  return block;
 }

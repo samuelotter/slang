@@ -28,12 +28,13 @@ Ref print_val(Ref count, Ref value) {
 int main(int argc, char** argv) {
   Scope* scope = scope_new();
 
-  List* a = list_new(scope, (Ref)2);
-  List* b = list_cons(a, (Ref)1);
+  List* a = list_new(scope, (Ref)3);
+  List* b = list_cons(a, (Ref)2);
+  List* c = list_cons(b, (Ref)1);
 
   int* var = do_stuff(scope);
 
-  list_foldl(b, var, &print_val);
+  list_foldl(c, var, &print_val);
 
   Tuple* tuple = tuple_new(scope, 3);
   tuple_set(tuple, 0, var);
