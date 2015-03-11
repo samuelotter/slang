@@ -19,16 +19,17 @@ Scope* scope_new() {
   return scope;
 }
 
-Ref scope_alloc(Scope* scope, size_t size) {
+Ref scope_alloc(Scope *scope, size_t size) {
   assert(scope != NULL);
   Block* block = scope->free_blocks;
   if (block == NULL) {
-    block = alloc_block(scope);
+    block = alloc_block(scope, BLOCK_SIZE);
+  } else if (size > BLOCK_SIZE - sizeof(Block)) {
+    block = alloc_block(scope, size + sizeof(Block));
   } else if (size > block->end - block->head) {
-    block = alloc_block(scope);
+    block = alloc_block(scope, BLOCK_SIZE);
   }
-  // TODO Handle sizes > BLOCK_SIZE.
-  void *ptr   = block->head;
+  void *ptr    = block->head;
   block->head += size;
   return ptr;
 }
@@ -45,16 +46,16 @@ void scope_destroy(Scope* scope) {
 
 // Internal Functions ----------------------------------------------------------
 
-Block* alloc_block(Scope *scope) {
-  Block* block = (Block*)aligned_alloc(PAGE_SIZE, BLOCK_SIZE);
-  block->type  = 1;
-  block->scope = scope;
-  block->next  = scope->free_blocks;
+Block* alloc_block(Scope *scope, size_t size) {
+  Block* block       = (Block*)aligned_alloc(BLOCK_SIZE, size);
+  block->type        = 1;
+  block->scope       = scope;
+  block->next        = scope->free_blocks;
   scope->free_blocks = block;
   if (block->next != NULL) {
     block->next->prev = block;
   }
   block->head = block + sizeof(Block);
-  block->end  = block + BLOCK_SIZE;
+  block->end  = block + size;
   return block;
 }

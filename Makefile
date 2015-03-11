@@ -2,6 +2,7 @@ TARGET   = bin/test
 CC       = gcc
 CC_FLAGS = -std=c11 -Wall -g -D_DEFAULT_SOURCE
 
+HEADER_FILES = $(wildcard src/*.h)
 SOURCE_FILES = $(wildcard src/*.c)
 OBJECT_FILES = $(SOURCE_FILES:src/%.c=build/%.o)
 
@@ -17,7 +18,7 @@ build:
 $(TARGET): $(OBJECT_FILES)
 	$(CC) -o bin/test $(OBJECT_FILES) -lc
 
-build/%.o: src/%.c
+build/%.o: src/%.c $(HEADER_FILES)
 	$(CC) -c $< -o $@ $(CC_FLAGS)
 
 clean:
@@ -25,4 +26,4 @@ clean:
 	rm -r build
 
 test: $(TARGET)
-	./bin/test
+	valgrind ./bin/test

@@ -46,6 +46,10 @@ int main(int argc, char** argv) {
   assert(atom1 == atom2);
   assert(atom1 != atom3);
 
+  char *large_obj = scope_alloc(scope, 16384);
+  memset(large_obj, 42, 16384);
+  assert(large_obj != NULL);
+
   printf("var = %d, %s\n", *var, atom1->name);
 
   scope_destroy(scope);
