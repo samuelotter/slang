@@ -27,6 +27,7 @@ Atom* atom(const char* name) {
   atom = (Atom*)malloc(sizeof(Atom));
   atom->hash = crc32(0, name, strlen(name));
   atom->next = NULL;
+  memset(atom->name, 0, ATOM_MAX_LENGTH + 1);
   memcpy(atom->name, name, name_len);
   atom->name[name_len] = 0;
   insert(atom);

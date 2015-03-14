@@ -2,6 +2,7 @@
 #include "list.h"
 #include "tuple.h"
 #include "atom.h"
+#include "map.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +22,16 @@ Ref print_val(Ref count, Ref value) {
 
 #define assert(EXPR)                                                    \
   if (!(EXPR)) {                                                        \
-    printf("assertion failed: '%s' at %s:%d\n", #EXPR, __FILE__, __LINE__); \
+    printf("assertion failed: '%s' at %s:%d\n",                         \
+           #EXPR, __FILE__, __LINE__);                                  \
+    exit(1);                                                            \
+  }
+
+#define assert_eq(EXPR1, EXPR2)                                         \
+  if ((EXPR1) != (EXPR2)) {                                             \
+    printf("assertion failed: '%s == %s'\n"                             \
+           "expected: %p but got %p at %s:%d",                          \
+           #EXPR1, #EXPR2, (EXPR1), (EXPR2), __FILE__, __LINE__);       \
     exit(1);                                                            \
   }
 
@@ -51,6 +61,13 @@ int main(int argc, char** argv) {
   assert(large_obj != NULL);
 
   printf("var = %d, %s\n", *var, atom1->name);
+
+  Map *map1 = map(scope);
+  map1      = map_insert(map1, atom1, sizeof(Atom), tuple);
+  map1      = map_insert(map1, atom3, sizeof(Atom), large_obj);
+
+  assert_eq(tuple, (Tuple*)map_lookup(map1, atom1, sizeof(Atom)));
+  assert_eq(large_obj, (char*)map_lookup(map1, atom3, sizeof(Atom)));
 
   scope_destroy(scope);
   return 0;

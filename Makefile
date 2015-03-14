@@ -1,6 +1,6 @@
 TARGET   = bin/test
 CC       = gcc
-CC_FLAGS = -std=c11 -Wall -g -D_DEFAULT_SOURCE
+CC_FLAGS = -std=c11 -Wall -Werror -g -D_DEFAULT_SOURCE
 
 HEADER_FILES = $(wildcard src/*.h)
 SOURCE_FILES = $(wildcard src/*.c)

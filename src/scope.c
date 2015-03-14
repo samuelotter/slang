@@ -55,7 +55,8 @@ Block* alloc_block(Scope *scope, size_t size) {
   if (block->next != NULL) {
     block->next->prev = block;
   }
-  block->head = block + sizeof(Block);
-  block->end  = block + size;
+  void* start = block;
+  block->head = start + sizeof(Block);
+  block->end  = start + size;
   return block;
 }
