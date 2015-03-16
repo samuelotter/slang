@@ -3,6 +3,8 @@
 
 #include <memory.h>
 
+#include "type.h"
+
 /* Constants ******************************************************************/
 
 #define BLOCK_SIZE 4096
@@ -14,11 +16,6 @@ struct Block;
 
 typedef int (*Destructor)(void*);
 
-typedef struct {
-  char*      name;
-  Destructor destructor;
-} Type;
-
 typedef struct Block {
   char           type;
   struct Block   *prev, *next;
@@ -26,8 +23,6 @@ typedef struct Block {
   void           *end;
   void           *head;
 } Block;
-
-typedef void* Ref;
 
 typedef struct Scope {
   Block     *free_blocks;
@@ -38,11 +33,14 @@ typedef struct Scope {
 #define scopeof(REF) \
   (((Block*)((void*)REF - ((size_t)REF % BLOCK_SIZE)))->scope)
 
+#define scope_new(SCOPE, TYPE) ((TYPE*)scope_alloc(SCOPE, typeinfo(TYPE)))
+
 /* API ************************************************************************/
 
-Scope* scope_new();
+Scope *scope_begin();
 void   scope_destroy(Scope* scope);
 
-Ref    scope_alloc(Scope* scope, size_t size);
+void   *scope_alloc(Scope *scope, size_t size);
+void   *scope_alloc_box(Scope *scope, Type* type);
 
 #endif /* _SCOPE_H_ */

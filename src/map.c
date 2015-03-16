@@ -26,10 +26,11 @@ typedef union Node {
   Branch branch;
 } Node;
 
-typedef struct Root {
-  Node *node;
-  int  version;
-} Root;
+reftype(Map,
+        struct {
+          Node *node;
+        });
+deftype(Map);
 
 /* Forward decls. *************************************************************/
 
@@ -43,28 +44,29 @@ static const void *lookup(int level, Node *node, uint32_t hash,
 /* API ************************************************************************/
 
 Map *map(Scope *scope) {
-  Root *map    = scope_alloc(scope, sizeof(Map));
-  map->version = 0;
+  Map *map     = scope_alloc(scope, sizeof(Map));
   map->node    = NULL;
-  return (Map*)map;
+  map->type    = type(Map);
+  return map;
 }
 
 Map *map_insert(Map *map, const void *key, size_t key_size, const void *value) {
   Scope *scope  = scopeof(map);
-  Node *node    = ((Root*)map)->node;
+  Node *node    = map->node;
   uint32_t hash = crc32(0, key, key_size);
   if (node == NULL) {
     node = (Node*)make_leaf(scope, hash, key, value);
   } else {
     node = insert(1, node, hash, key, value);
   }
-  Root *root = scope_alloc(scope, sizeof(Root));
-  root->node = node;
-  return (Map*)root;
+  Map *new_map = scope_alloc(scope, sizeof(Map));
+  new_map->node = node;
+  new_map->type = type(Map);
+  return (Map*)new_map;
 }
 
 const void *map_lookup(Map *map, const void *key, size_t key_size) {
-  Node *node = ((Root*)map)->node;
+  Node *node = map->node;
   if (node == NULL) {
     return NULL;
   }

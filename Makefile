@@ -27,3 +27,6 @@ clean:
 
 test: $(TARGET)
 	valgrind ./bin/test
+
+check-syntax:
+	$(CC) -o nul -S ${SOURCE_FILES} ${HEADER_FILES}

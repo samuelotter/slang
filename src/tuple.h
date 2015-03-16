@@ -7,16 +7,13 @@
 
 // Types -----------------------------------------------------------------------
 
-typedef struct {
-  size_t  size;
-  Ref     elements[0];
-} Tuple;
+decltype(Tuple, struct Tuple);
 
 // API -------------------------------------------------------------------------
 
-Tuple* tuple_new(Scope* scope, size_t size);
+Tuple *tuple_new(Scope *scope, size_t size);
 
-Ref    tuple_get(Tuple* tuple, size_t n);
-Tuple* tuple_set(Tuple* tuple, size_t n, Ref value);
+void  *tuple_get(Tuple *tuple, size_t n);
+Tuple *tuple_set(Tuple *tuple, size_t n, void *value);
 
 #endif

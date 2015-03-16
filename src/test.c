@@ -13,7 +13,7 @@ int* do_stuff(Scope* scope) {
   return var;
 }
 
-Ref print_val(Ref count, Ref value) {
+void *print_val(void *count, void *value) {
   int* c = count;
   printf("%d: %p\n", *c, value);
   *c = *c + 1;
@@ -36,11 +36,11 @@ Ref print_val(Ref count, Ref value) {
   }
 
 int main(int argc, char** argv) {
-  Scope* scope = scope_new();
+  Scope *scope = scope_begin();
 
-  List* a = list_new(scope, (Ref)3);
-  List* b = list_cons(a, (Ref)2);
-  List* c = list_cons(b, (Ref)1);
+  List* a = list_new(scope, (void*)3);
+  List* b = list_cons(a, (void*)2);
+  List* c = list_cons(b, (void*)1);
 
   int* var = do_stuff(scope);
 
@@ -49,9 +49,9 @@ int main(int argc, char** argv) {
   Tuple* tuple = tuple_new(scope, 3);
   tuple_set(tuple, 0, var);
 
-  Atom* atom1 = atom("the_atom");
-  Atom* atom2 = atom("the_atom");
-  Atom* atom3 = atom("another_atom");
+  Atom *atom1 = atom("the_atom");
+  Atom *atom2 = atom("the_atom");
+  Atom *atom3 = atom("another_atom");
 
   assert(atom1 == atom2);
   assert(atom1 != atom3);

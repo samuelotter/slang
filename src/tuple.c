@@ -2,18 +2,25 @@
 
 #include <assert.h>
 
-Tuple* tuple_new(Scope* scope, size_t n) {
-  Tuple* tuple = (Tuple*)scope_alloc(scope, sizeof(Tuple) + sizeof(Ref) * n);
+reftype(Tuple,
+        struct {
+        size_t size;
+        void   *elements[0];
+        });
+deftype(Tuple);
+
+Tuple *tuple_new(Scope *scope, size_t n) {
+  Tuple *tuple = (Tuple*)scope_alloc(scope, sizeof(Tuple) + sizeof(void*) * n);
   tuple->size = n;
   return tuple;
 }
 
-Ref tuple_get(Tuple* tuple, size_t n) {
+void *tuple_get(Tuple *tuple, size_t n) {
   assert(n < tuple->size);
   return tuple->elements[n];
 }
 
-Tuple* tuple_set(Tuple* tuple, size_t n, Ref value) {
+Tuple *tuple_set(Tuple* tuple, size_t n, void *value) {
   assert(n < tuple->size);
   tuple->elements[n] = value;
   return tuple;

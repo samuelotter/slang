@@ -13,13 +13,13 @@ Block* alloc_block();
 
 // API -------------------------------------------------------------------------
 
-Scope* scope_new() {
+Scope* scope_begin() {
   Scope* scope = (Scope*)malloc(sizeof(Scope));
   scope->free_blocks = NULL;
   return scope;
 }
 
-Ref scope_alloc(Scope *scope, size_t size) {
+void *scope_alloc(Scope *scope, size_t size) {
   assert(scope != NULL);
   Block* block = scope->free_blocks;
   if (block == NULL) {
@@ -32,6 +32,12 @@ Ref scope_alloc(Scope *scope, size_t size) {
   void *ptr    = block->head;
   block->head += size;
   return ptr;
+}
+
+void *scope_alloc_box(Scope *scope, Type *type) {
+  assert(scope != NULL);
+  assert(type != NULL);
+  return scope_alloc(scope, type->size);
 }
 
 void scope_destroy(Scope* scope) {

@@ -3,15 +3,14 @@
 
 #include "scope.h"
 
-typedef struct List {
-  Ref          value;
-  struct List* next;
-} List;
+#include "type.h"
 
-List* list_new(Scope* scope, Ref value);
-List* list_cons(List* list, Ref value);
+decltype(List, struct List);
 
-void  list_foreach(List* list, void(*fun)(Ref));
-Ref   list_foldl(List* list, Ref acc, Ref(*fun)(Ref, Ref));
+List* list_new(Scope* scope, void *value);
+List* list_cons(List* list, void *value);
+
+void  list_foreach(List* list, void(*fun)(void *));
+void *list_foldl(List* list, void * acc, void *(*fun)(void *, void *));
 
 #endif

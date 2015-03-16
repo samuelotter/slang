@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
-// Data ------------------------------------------------------------------------
+deftype(Atom);
+
+/* Data ***********************************************************************/
 
 #define ATOM_TABLE_BUCKETS 1024
 
@@ -14,7 +16,7 @@ static Atom* atom_table[ATOM_TABLE_BUCKETS] = { 0 };
 _Bool lookup(const char* name, Atom** atom);
 void  insert(Atom* atom);
 
-// API -------------------------------------------------------------------------
+/* API ************************************************************************/
 
 Atom* atom(const char* name) {
   Atom* atom = NULL;
@@ -27,6 +29,7 @@ Atom* atom(const char* name) {
   atom = (Atom*)malloc(sizeof(Atom));
   atom->hash = crc32(0, name, strlen(name));
   atom->next = NULL;
+  atom->type = type(Atom);
   memset(atom->name, 0, ATOM_MAX_LENGTH + 1);
   memcpy(atom->name, name, name_len);
   atom->name[name_len] = 0;
@@ -34,7 +37,7 @@ Atom* atom(const char* name) {
   return atom;
 }
 
-// Internal Functions ----------------------------------------------------------
+/* Internal functions *********************************************************/
 
 _Bool lookup(const char* name, Atom** atom) {
   uint32_t hash = crc32(0, name, strlen(name));
