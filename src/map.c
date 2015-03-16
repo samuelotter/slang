@@ -1,78 +1,74 @@
 #include "map.h"
 
 #include "crc32.h"
+#include "ref.h"
+
+#include <assert.h>
 
 enum NODE_TYPE {
   LEAF,
   BRANCH
 };
 
-typedef struct Leaf {
-  char       type;
-  uint32_t   hash;
-  const void *key;
-  const void *value;
-} Leaf;
-
-typedef struct Branch {
-  char type;
-  int  mask;
-  void *elements[];
-} Branch;
-
-typedef union Node {
-  char   type;
-  Leaf   leaf;
-  Branch branch;
-} Node;
-
 reftype(Map,
-        struct {
-          Node *node;
-        });
+        Ref elements[];
+        );
 deftype(Map);
+
+#define node_data(TYPE, MASK)                    \
+  ((TYPE & 0x1) | ((MASK & 0xFFFF) << 1))
+#define node_type(NODE) (ref_data(NODE) & 0x1)
+#define node_mask(NODE) ((ref_data(NODE) >> 1) & 0xFFFF)
 
 /* Forward decls. *************************************************************/
 
-static Node* insert(int level, Node *node, uint32_t hash, const void *key,
-                    const void *value);
-static Leaf *make_leaf(Scope *scope, uint32_t hash, const void *key,
-                       const void *value);
-static const void *lookup(int level, Node *node, uint32_t hash,
-                          const void *key);
+static Map *insert(int level, Map *node, uint32_t hash, const Ref key,
+                    const Ref value);
+static Map *make_leaf(Scope *scope, int bit, const Ref key,
+                       const Ref value);
+static const Ref lookup(int level, Map *node, uint32_t hash,
+                          const Ref key);
+
+static inline int bitindex(int mask, int bit);
+static inline int bitpos(int level, uint32_t hash);
 
 /* API ************************************************************************/
 
 Map *map(Scope *scope) {
   Map *map     = scope_alloc(scope, sizeof(Map));
-  map->node    = NULL;
-  map->type    = type(Map);
+  map->header  = ref_header(TYPEID_MAP, node_data(BRANCH, 0));
   return map;
 }
 
-Map *map_insert(Map *map, const void *key, size_t key_size, const void *value) {
+Map *map_insert(Map *map, const Ref key, const Ref value) {
   Scope *scope  = scopeof(map);
-  Node *node    = map->node;
-  uint32_t hash = crc32(0, key, key_size);
-  if (node == NULL) {
-    node = (Node*)make_leaf(scope, hash, key, value);
+  uint32_t hash = ref_hash32(0, key);
+  if (node_mask(map) == 0x0) {
+    return make_leaf(scope, bitpos(1, hash), key, value);
   } else {
-    node = insert(1, node, hash, key, value);
+    return insert(1, map, hash, key, value);
   }
-  Map *new_map = scope_alloc(scope, sizeof(Map));
-  new_map->node = node;
-  new_map->type = type(Map);
-  return (Map*)new_map;
 }
 
-const void *map_lookup(Map *map, const void *key, size_t key_size) {
-  Node *node = map->node;
-  if (node == NULL) {
-    return NULL;
-  }
-  uint32_t hash = crc32(0, key, key_size);
-  return lookup(1, node, hash, key);
+const Ref map_lookup(Map *map, const Ref key) {
+  assert(map != NULL);
+  uint32_t hash = ref_hash32(0, key);
+  return lookup(1, map, hash, key);
 }
+
+uint32_t map_hash32(uint32_t hash, Map *map) {
+  if (node_type(map) == LEAF) {
+    return ref_hash32(ref_hash32(hash, map->elements[0]), map->elements[1]);
+  } else {
+    int count = __builtin_popcount(node_mask(map));
+    for (int i = 0; i < count; i++) {
+      hash = ref_hash32(hash, map->elements[i]);
+    }
+    return hash;
+  }
+}
+
+/* Internal Functions *********************************************************/
 
 static inline int bitindex(int mask, int bit) {
   return __builtin_popcount(mask & (bit - 1));
@@ -82,62 +78,69 @@ static inline int bitpos(int level, uint32_t hash) {
   return 1 << ((hash >> (32 - level * 4)) & 0xF);
 }
 
-Leaf *make_leaf(Scope *scope, uint32_t hash, const void *key,
-                const void *value) {
-  Leaf* node  = scope_alloc(scope, sizeof(Leaf));
-  node->type  = LEAF;
-  node->hash  = hash;
-  node->key   = key;
-  node->value = value;
+Map *make_leaf(Scope *scope, int bit, const Ref key,
+                const Ref value) {
+  Map *node         = scope_alloc(scope, sizeof(Map) + sizeof(Ref) * 2);
+  node->header      = ref_header(TYPEID_MAP, node_data(LEAF, bit));
+  node->elements[0] = key;
+  node->elements[1] = value;
   return node;
 }
 
-Node* insert(int level, Node *node, uint32_t hash, const void *key,
-             const void *value) {
+Map* insert(int level, Map *node, uint32_t hash, const Ref key,
+             const Ref value) {
+  // TODO: Handle collisions
+  // TODO: Handle overflow
+  // TODO: Compare keys
   Scope* scope = scopeof(node);
   int bit      = bitpos(level, hash);
-  if (node->type == LEAF) {
-    int leaf_bit   = bitpos(level, node->leaf.hash);
-    int length     = 2;
-    size_t size    = sizeof(Branch) + sizeof(Node*) * length;
-    Branch *branch = scope_alloc(scope, size);
-    branch->type   = BRANCH;
-    branch->mask   = bit | leaf_bit;
-    branch->elements[bitindex(branch->mask, bit)]      =
-      make_leaf(scope, hash, key, value);
-    branch->elements[bitindex(branch->mask, leaf_bit)] =
-      make_leaf(scope, node->leaf.hash, node->leaf.key, node->leaf.value);
-    return (Node*)branch;
+  if (node_type(node) == LEAF) {
+    uint32_t leaf_hash = ref_hash32(0, node->elements[0]);
+    int leaf_bit       = bitpos(level, leaf_hash);
+    if (leaf_bit == bit) {
+      assert(0 /* Collision */);
+    }
+    int length         = 2;
+    size_t size        = sizeof(Map) + sizeof(Ref) * length;
+    Map *branch        = scope_alloc(scope, size);
+    int mask           = bit | leaf_bit;
+    branch->header     = ref_header(TYPEID_MAP, node_data(BRANCH, mask));
+    branch->elements[bitindex(mask, bit)] = (Ref)make_leaf(scope, bit, key, value);
+    branch->elements[bitindex(mask, leaf_bit)] = (Ref)node;
+    return branch;
   } else {
-    int count = __builtin_popcount(node->branch.mask);
-    if ((node->branch.mask & bit) == 0) {
-      int length     = count > 8 ? 16 : count + 1;
-      size_t size    = sizeof(Branch) + sizeof(Node*) * length;
-      Branch *branch = scope_alloc(scope, size);
-      branch->type   = BRANCH;
-      branch->mask   = node->branch.mask | bit;
-      int index      = bitindex(branch->mask, bit);
-      memcpy(branch->elements, node->branch.elements, sizeof(Node*) * index - 1);
-      memcpy(branch->elements + index, node->branch.elements + index, count - index);
-      branch->elements[index] = make_leaf(scope, hash, key, value);
-      return (Node*)branch;
+    int mask  = node_mask(node);
+    int count = __builtin_popcount(mask);
+    if ((mask & bit) == 0 && count < 16) {
+      int length     = count > 16 ? 16 : count + 1;
+      size_t size    = sizeof(Map) + sizeof(Ref) * length;
+      Map *branch    = scope_alloc(scope, size);
+      mask           = mask | bit;
+      branch->header = ref_header(TYPEID_MAP, node_data(BRANCH, mask));
+      int index      = bitindex(mask, bit);
+      memcpy(branch->elements, node->elements, sizeof(Ref) * (index - 1));
+      memcpy(branch->elements + index, node->elements + index, sizeof(Ref) * (count - index));
+      branch->elements[index] = (Ref)make_leaf(scope, bit, key, value);
+      return branch;
     } else {
       return insert(level + 1, node, hash, key, value);
     }
   }
+  assert(0);
   return node;
 }
 
-const void *lookup(int level, Node *node, uint32_t hash, const void *key) {
-  if (node->type == LEAF) {
-    // TODO: Compare value
-    return (node->leaf.key == key) ? node->leaf.value : NULL;
+const Ref lookup(int level, Map *node, uint32_t hash, const Ref key) {
+  if (node_type(node) == LEAF) {
+    // TODO: Compare key
+    return (node->elements[0].ptr == key.ptr) ? node->elements[1] : (Ref)NULL;
   } else {
-    int bit = bitpos(level, hash);
-    if ((node->branch.mask & bit) != 0) {
-      int index = bitindex(node->branch.mask, bit);
-      return lookup(level + 1, node->branch.elements[index], hash, key);
+    int bit  = bitpos(level, hash);
+    int mask = node_mask(node);
+    if ((mask & bit) != 0) {
+      int index = bitindex(mask, bit);
+      return lookup(level + 1, node->elements[index].map, hash, key);
     }
   }
-  return NULL;
+  return (Ref)NULL;
 }

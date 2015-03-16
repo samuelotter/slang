@@ -2,6 +2,7 @@
 #define _TUPLE_H_
 
 #include "scope.h"
+#include "ref.h"
 
 #include <stddef.h>
 
@@ -11,9 +12,11 @@ decltype(Tuple, struct Tuple);
 
 // API -------------------------------------------------------------------------
 
-Tuple *tuple_new(Scope *scope, size_t size);
+Tuple *tuple_new(Scope *scope, uint32_t size);
 
-void  *tuple_get(Tuple *tuple, size_t n);
-Tuple *tuple_set(Tuple *tuple, size_t n, void *value);
+Ref    tuple_get(Tuple *tuple, uint32_t n);
+Tuple *tuple_set(Tuple *tuple, uint32_t n, Ref value);
+
+uint32_t tuple_hash32(uint32_t hash, Tuple *tuple);
 
 #endif

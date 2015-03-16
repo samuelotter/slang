@@ -5,6 +5,7 @@
 
 #include "scope.h"
 #include "type.h"
+#include "ref.h"
 
 #define MAP_WIDTH 16
 
@@ -16,8 +17,10 @@ decltype(Map, struct Map);
 
 Map *map(Scope *scope);
 
-Map *map_insert(Map *map, const void *key, size_t key_size, const void *value);
-const void *map_lookup(Map *map, const void *key, size_t key_size);
-Map *map_remove(Map *map, const void *key, size_t key_size);
+Map *map_insert(Map *map, const Ref key, const Ref value);
+const Ref map_lookup(Map *map, const Ref key);
+Map *map_remove(Map *map, const Ref key);
+
+uint32_t map_hash32(uint32_t, Map *);
 
 #endif

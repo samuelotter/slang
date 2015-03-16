@@ -27,14 +27,18 @@ Atom* atom(const char* name) {
   assert(name_len <= ATOM_MAX_LENGTH);
 
   atom = (Atom*)malloc(sizeof(Atom));
-  atom->hash = crc32(0, name, strlen(name));
-  atom->next = NULL;
-  atom->type = type(Atom);
+  atom->hash   = crc32(0, name, strlen(name));
+  atom->next   = NULL;
+  atom->header = ref_header(TYPEID_ATOM, 0);
   memset(atom->name, 0, ATOM_MAX_LENGTH + 1);
   memcpy(atom->name, name, name_len);
   atom->name[name_len] = 0;
   insert(atom);
   return atom;
+}
+
+uint32_t atom_hash32(uint32_t hash, Atom *atom) {
+  return crc32(hash, atom->name, strlen(atom->name));
 }
 
 /* Internal functions *********************************************************/

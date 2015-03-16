@@ -4,24 +4,33 @@
 
 reftype(Tuple,
         struct {
-        size_t size;
-        void   *elements[0];
+          Ref elements[0];
         });
 deftype(Tuple);
 
-Tuple *tuple_new(Scope *scope, size_t n) {
-  Tuple *tuple = (Tuple*)scope_alloc(scope, sizeof(Tuple) + sizeof(void*) * n);
-  tuple->size = n;
+Tuple *tuple_new(Scope *scope, uint32_t n) {
+  Tuple *tuple  = (Tuple*)scope_alloc(scope, sizeof(Tuple) + sizeof(void*));
+  tuple->header = ref_header(TYPEID_TUPLE, n);
   return tuple;
 }
 
-void *tuple_get(Tuple *tuple, size_t n) {
-  assert(n < tuple->size);
+Ref tuple_get(Tuple *tuple, uint32_t n) {
+  uint32_t size = ref_data(tuple);
+  assert(n < size);
   return tuple->elements[n];
 }
 
-Tuple *tuple_set(Tuple* tuple, size_t n, void *value) {
-  assert(n < tuple->size);
+Tuple *tuple_set(Tuple* tuple, uint32_t n, Ref value) {
+  uint32_t size = ref_data(tuple);
+  assert(n < size);
   tuple->elements[n] = value;
   return tuple;
+}
+
+uint32_t tuple_hash32(uint32_t hash, Tuple *tuple) {
+  int size = ref_data(tuple);
+  for (size_t i = 0; i < size; i++) {
+    hash = ref_hash32(hash, tuple->elements[i]);
+  }
+  return hash;
 }

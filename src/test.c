@@ -13,9 +13,9 @@ int* do_stuff(Scope* scope) {
   return var;
 }
 
-void *print_val(void *count, void *value) {
+void *print_val(void *count, Ref value) {
   int* c = count;
-  printf("%d: %p\n", *c, value);
+  printf("%d: %p\n", *c, value.ptr);
   *c = *c + 1;
   return count;
 }
@@ -38,23 +38,23 @@ void *print_val(void *count, void *value) {
 int main(int argc, char** argv) {
   Scope *scope = scope_begin();
 
-  List* a = list_new(scope, (void*)3);
-  List* b = list_cons(a, (void*)2);
-  List* c = list_cons(b, (void*)1);
-
-  int* var = do_stuff(scope);
-
-  list_foldl(c, var, &print_val);
-
-  Tuple* tuple = tuple_new(scope, 3);
-  tuple_set(tuple, 0, var);
-
   Atom *atom1 = atom("the_atom");
   Atom *atom2 = atom("the_atom");
   Atom *atom3 = atom("another_atom");
 
   assert(atom1 == atom2);
   assert(atom1 != atom3);
+
+  List* a = list_new(scope, (Ref)atom1);
+  List* b = list_cons(a, (Ref)atom2);
+  List* c = list_cons(b, (Ref)atom3);
+
+  int* var = do_stuff(scope);
+
+  list_foldl(c, var, &print_val);
+
+  Tuple* tuple = tuple_new(scope, 3);
+  tuple_set(tuple, 0, (Ref)a);
 
   char *large_obj = scope_alloc(scope, 16384);
   memset(large_obj, 42, 16384);
@@ -63,11 +63,11 @@ int main(int argc, char** argv) {
   printf("var = %d, %s\n", *var, atom1->name);
 
   Map *map1 = map(scope);
-  map1      = map_insert(map1, atom1, sizeof(Atom), tuple);
-  map1      = map_insert(map1, atom3, sizeof(Atom), large_obj);
+  map1      = map_insert(map1, (Ref)atom1, (Ref)tuple);
+  map1      = map_insert(map1, (Ref)atom3, (Ref)c);
 
-  assert_eq(tuple, (Tuple*)map_lookup(map1, atom1, sizeof(Atom)));
-  assert_eq(large_obj, (char*)map_lookup(map1, atom3, sizeof(Atom)));
+  assert_eq(tuple, map_lookup(map1, (Ref)atom1).tuple);
+  assert_eq(c, map_lookup(map1, (Ref)atom3).list);
 
   scope_destroy(scope);
   return 0;
