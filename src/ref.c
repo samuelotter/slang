@@ -4,6 +4,7 @@
 #include "list.h"
 #include "tuple.h"
 #include "map.h"
+#include <binary.h>
 
 #include <assert.h>
 
@@ -17,6 +18,8 @@ uint32_t ref_hash32(uint32_t hash, Ref ref) {
     return tuple_hash32(hash, ref.tuple);
   case TYPEID_MAP:
     return map_hash32(hash, ref.map);
+  case TYPEID_BINARY:
+    return binary_hash32(hash, ref.binary);
   default:
     assert(0);
   }

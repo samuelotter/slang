@@ -7,12 +7,12 @@
 
 typedef enum {
   TYPEID_PTR,
-  TYPEID_INTEGER,
   TYPEID_FLOAT,
   TYPEID_ATOM,
   TYPEID_LIST,
   TYPEID_TUPLE,
   TYPEID_MAP,
+  TYPEID_BINARY,
   TYPEID_RECORD
 } TypeId;
 
@@ -42,12 +42,13 @@ typedef enum {
   } TYPE_NAME
 
 typedef union Ref {
-  uint32_t     *header;
-  struct Atom  *atom;
-  struct List  *list;
-  struct Tuple *tuple;
-  struct Map   *map;
-  void         *ptr;
+  uint32_t      *header;
+  struct Atom   *atom;
+  struct List   *list;
+  struct Tuple  *tuple;
+  struct Map    *map;
+  struct Binary *binary;
+  void          *ptr;
 } Ref;
 
 uint32_t ref_hash32(uint32_t, Ref);
