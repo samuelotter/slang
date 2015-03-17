@@ -34,7 +34,7 @@ build/tests/%: tests/%.c
 
 define run-test =
 	@valgrind -q $(1) > $(1).log 2>&1; \
-	if [ $$? == 0 ]; then echo "OK   " $(1);\
+	if [ $$? = 0 ]; then echo "OK   " $(1);\
 	else echo "FAIL " $(1); cat $(1).log | sed "s/^/>    /"; fi;
 	@printf "\n"
 endef
