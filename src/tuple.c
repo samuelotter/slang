@@ -2,10 +2,6 @@
 
 #include <assert.h>
 
-reftype(Tuple,
-        struct {
-          Ref elements[0];
-        });
 deftype(Tuple);
 
 Tuple *tuple_new(Scope *scope, uint32_t n) {

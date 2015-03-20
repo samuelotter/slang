@@ -1,4 +1,4 @@
-TARGET   = bin/test
+TARGET   = bin/slang
 
 HEADER_FILES = $(wildcard include/slang/*.h)
 SOURCE_FILES = $(wildcard src/*.c)
@@ -19,7 +19,7 @@ build:
 	mkdir -p build
 
 $(TARGET): $(OBJECT_FILES)
-	$(CC) -o bin/test $(OBJECT_FILES) -lc
+	$(CC) -o $(TARGET) $(OBJECT_FILES) -lc
 
 build/%.o: src/%.c $(HEADER_FILES)
 	$(CC) -c $< -o $@ $(CC_FLAGS)

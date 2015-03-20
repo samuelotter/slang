@@ -53,5 +53,4 @@ typedef union Ref {
 
 uint32_t ref_hash32(uint32_t, Ref);
 
-
 #endif

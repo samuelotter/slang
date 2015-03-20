@@ -14,7 +14,7 @@ reftype(Binary,
         });
 
 Binary  *binary(Scope *scope, const uint8_t *data, size_t size);
-
+Binary  *binary_new(Scope *scope, size_t size);
 uint32_t binary_hash32(uint32_t hash, Binary *binary);
 
 #endif
