@@ -10,9 +10,8 @@
 
 decltype(Tuple, struct Tuple);
 reftype(Tuple,
-        struct {
-          Ref elements[0];
-        });
+        Ref elements[];
+        );
 
 // API -------------------------------------------------------------------------
 

@@ -33,5 +33,6 @@ int main(int argc, char **argv) {
   assert(expr != NULL);
   //ref_print(expr);
 
+  scope_destroy(scope);
   return 0;
 }

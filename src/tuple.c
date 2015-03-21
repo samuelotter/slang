@@ -1,11 +1,12 @@
 #include "tuple.h"
 
 #include <assert.h>
+#include <ref.h>
 
 deftype(Tuple);
 
 Tuple *tuple_new(Scope *scope, uint32_t n) {
-  Tuple *tuple  = (Tuple*)scope_alloc(scope, sizeof(Tuple) + sizeof(void*));
+  Tuple *tuple  = (Tuple*)scope_alloc(scope, sizeof(Tuple) + sizeof(Ref) * n);
   tuple->header = ref_header(TYPEID_TUPLE, n);
   return tuple;
 }
