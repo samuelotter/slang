@@ -5,5 +5,6 @@
 #include <list.h>
 
 List *syntax_tokenize(Binary *binary);
+List *syntax_parse(List *tokens);
 
 #endif

@@ -44,7 +44,10 @@ int main(int argc, char **argv) {
 
   Scope *scope    = scope_begin();
   Binary *content = read_file(scope, filename);
-  List *expr      = syntax_tokenize(content);
+  List *tokens    = syntax_tokenize(content);
+  //  pretty_print(tokens);
+  List *expr      = syntax_parse(tokens);
+  pretty_print(expr);
   assert(expr != NULL);
   //ref_print(expr);
 

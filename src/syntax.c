@@ -9,13 +9,28 @@
 typedef enum {
   STATE_START,
   STATE_ATOM,
-  STATE_VARIABLE,
-  STATE_OPERATOR,
   STATE_COMMENT,
-  STATE_STRING,
   STATE_NUMBER,
+  STATE_OPERATOR,
+  STATE_STRING,
+  STATE_VARIABLE,
   STATE_MAX
 } TokenizerState;
+
+typedef enum {
+  TOKEN_TYPE_ATOM,
+  TOKEN_TYPE_COMMENT,
+  TOKEN_TYPE_NUMBER,
+  TOKEN_TYPE_OPERATOR,
+  TOKEN_TYPE_STRING,
+  TOKEN_TYPE_VARIABLE,
+  TOKEN_TYPE_MAX
+} TokenType;
+
+reftype(Token, struct {
+    Binary    *symbol;
+    TokenType  type;
+  });
 
 typedef struct TokenizerStateContext {
   char       *buffer;
@@ -47,7 +62,7 @@ int is_doublequote(int symbol);
 int is_digit(int symbol);
 
 void start_token(TokenizerStateContext *);
-void add_token(TokenizerStateContext *, Atom *);
+void add_token(TokenizerStateContext *, TokenType type);
 
 void make_atom(TokenizerStateContext *context);
 void make_variable(TokenizerStateContext *context);
@@ -111,20 +126,20 @@ TokenizerStateTableEntry state_table[] = {
   { sizeof(state_atom_edges) / sizeof(TokenizerStateEdge),
     state_atom_edges
   },
-  { sizeof(state_variable_edges) / sizeof(TokenizerStateEdge),
-    state_variable_edges
+  { sizeof(state_comment_edges) / sizeof(TokenizerStateEdge),
+    state_comment_edges
+  },
+  { sizeof(state_number_edges) / sizeof(TokenizerStateEdge),
+    state_number_edges
   },
   { sizeof(state_operator_edges) / sizeof(TokenizerStateEdge),
     state_operator_edges
   },
-  { sizeof(state_comment_edges) / sizeof(TokenizerStateEdge),
-    state_comment_edges
-  },
   { sizeof(state_string_edges) / sizeof(TokenizerStateEdge),
     state_string_edges
   },
-  { sizeof(state_number_edges) / sizeof(TokenizerStateEdge),
-    state_number_edges
+  { sizeof(state_variable_edges) / sizeof(TokenizerStateEdge),
+    state_variable_edges
   },
 };
 
@@ -187,7 +202,7 @@ int is_semicolon(int symbol) {
 }
 
 int is_paren(int symbol) {
-  return symbol == '(' || symbol == ')';
+  return symbol == '(' || symbol == ')' || symbol == '{' || symbol == '}';
 }
 
 int is_doublequote(int symbol) {
@@ -202,45 +217,44 @@ void start_token(TokenizerStateContext *context) {
   context->token_start = context->buffer;
 }
 
-void add_token(TokenizerStateContext *context, Atom *class) {
-  Binary *token        = binary(context->scope,
+void add_token(TokenizerStateContext *context, TokenType type) {
+  Binary *symbol       = binary(context->scope,
                                 (uint8_t*)context->token_start,
-                                context->buffer - context->token_start);
-  Tuple *tuple         = tuple_new(context->scope, 2);
-  tuple->elements[0]   = (Ref)token;
-  tuple->elements[1]   = (Ref)class;
-  context->head        = list_cons(context->head, (Ref)tuple);
+                                context->buffer - context->token_start - 1);
+  Token *token         = (Token*)scope_alloc_ref(context->scope, sizeof(Token),
+                                         TYPEID_RECORD, 0).ptr;
+  token->symbol        = symbol;
+  token->type          = type;
+  context->head        = list_cons(context->head, (Ref)(void*)token);
   context->token_start = context->buffer;
 }
 
-List *make_token(List *head, Ref token, Atom *class);
-
 void make_atom(TokenizerStateContext *context) {
-  add_token(context, atom("atom"));
+  add_token(context, TOKEN_TYPE_ATOM);
 }
 
 void make_variable(TokenizerStateContext *context) {
-  add_token(context, atom("variable"));
+  add_token(context, TOKEN_TYPE_VARIABLE);
 }
 
 void make_operator(TokenizerStateContext *context) {
-  add_token(context, atom("operator"));
+  add_token(context, TOKEN_TYPE_OPERATOR);
 }
 
 void make_comment(TokenizerStateContext *context) {
-  add_token(context, atom("comment"));
+  add_token(context, TOKEN_TYPE_COMMENT);
 }
 
 void make_string(TokenizerStateContext *context) {
-  add_token(context, atom("string"));
+  add_token(context, TOKEN_TYPE_STRING);
 }
 
 void make_number(TokenizerStateContext *context) {
-  add_token(context, atom("number"));
+  add_token(context, TOKEN_TYPE_NUMBER);
 }
 
 List *syntax_tokenize(Binary *binary) {
-  List *head = list_new(scopeof(binary), (Ref)NULL);
+  List *head = list_new(scopeof(binary));
   TokenizerStateContext context = {
     (char*)binary->data,
     (char*)binary->data,
@@ -269,5 +283,105 @@ List *syntax_tokenize(Binary *binary) {
   next:
     context.buffer++;
   }
-  return context.head;
+  return list_reverse(context.head);
+}
+
+/* Parser *********************************************************************/
+
+typedef List *InfixParser(List *left, List *tokens);
+
+typedef struct InfixRule {
+  int          lbp;
+  const char  *symbol;
+  InfixParser *parse_fun;
+} InfixRule;
+
+typedef List *PrefixParser(List *tokens);
+
+typedef struct PrefixRule {
+  const char   *symbol;
+  PrefixParser *parse_fun;
+} PrefixRule;
+
+List *expression(List *tokens, int rbp);
+
+List *list_parser(List *tokens) {
+  List *head = list_new(scopeof(tokens));
+  while (!list_is_empty(tokens)) {
+    Token *current = (Token*)tokens->value.ptr;
+    if (current->symbol->data[0] == ';') {
+      break;
+    }
+    List *expr = expression(tokens, 0);
+    list_cons(head, (Ref)expr);
+    tokens = tokens->next;
+  }
+  return head;
+}
+
+List *comment_parser(List *tokens) {
+  Token *token = (Token *)tokens->value.ptr;
+  List *comment = list_new(scopeof(tokens));
+  comment       = list_cons(comment, (Ref)token->symbol);
+  comment       = list_cons(comment, (Ref)atom("#"));
+  return comment;
+}
+
+static PrefixRule prefix_rules[] = {
+  { "(", list_parser },
+  { "#", comment_parser }
+};
+
+static InfixRule infix_rules[] = {
+  { 0, "~", NULL }
+};
+
+InfixRule* find_infix_rule(Binary *symbol) {
+  printf("find_infix_rule(\"%s\")\n", symbol->data);
+  for (size_t i = 0; i < sizeof(infix_rules) / sizeof(InfixRule); i++) {
+    if (strncmp(infix_rules[i].symbol, (char*)symbol->data, symbol->size) == 0) {
+      return &infix_rules[i];
+    }
+  }
+  return NULL;
+}
+
+PrefixRule* find_prefix_rule(Binary *symbol) {
+  printf("find_prefix_rule(\"%s\")\n", symbol->data);
+  for (size_t i = 0; i < sizeof(prefix_rules) / sizeof(PrefixRule); i++) {
+    size_t symbol_len = strlen(prefix_rules[i].symbol);
+    size_t len        = symbol_len < symbol->size ? symbol_len : symbol->size;
+    if (strncmp(prefix_rules[i].symbol, (char *)symbol->data, len) == 0) {
+      return &prefix_rules[i];
+    }
+  }
+  return NULL;
+}
+
+List *expression(List *tokens, int rbp) {
+  Token *current = (Token*)tokens->value.ptr;
+  printf("expression: current = '%s'\n", current->symbol->data);
+  PrefixRule *prefix_rule = find_prefix_rule(current->symbol);
+  if (prefix_rule == NULL) {
+    printf("No rule found for token %s\n", current->symbol->data);
+    exit(1);
+  }
+
+  List *left = prefix_rule->parse_fun(tokens);
+
+  while (!list_is_empty(tokens->next)) {
+    tokens = tokens->next;
+    Token *next = (Token*)tokens->value.ptr;
+    InfixRule *infix_rule = find_infix_rule(next->symbol);
+    if (infix_rule != NULL && rbp < infix_rule->lbp) {
+      left = infix_rule->parse_fun(left, tokens);
+    } else {
+      break;
+    }
+  }
+  return left;
+}
+
+List *syntax_parse(List *tokens) {
+  return list_parser(tokens);
 }
