@@ -34,10 +34,11 @@ void *scope_alloc(Scope *scope, size_t size) {
   return ptr;
 }
 
-void *scope_alloc_box(Scope *scope, Type *type) {
+Ref scope_alloc_ref(Scope *scope, size_t size, TypeId type, int ref_data) {
   assert(scope != NULL);
-  assert(type != NULL);
-  return scope_alloc(scope, type->size);
+  Ref ref = (Ref)scope_alloc(scope, size);
+  *ref.header = ref_header(type, ref_data);
+  return ref;
 }
 
 void scope_destroy(Scope* scope) {

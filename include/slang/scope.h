@@ -4,6 +4,7 @@
 #include <memory.h>
 
 #include "type.h"
+#include "ref.h"
 
 /* Constants ******************************************************************/
 
@@ -41,6 +42,6 @@ Scope *scope_begin();
 void   scope_destroy(Scope* scope);
 
 void   *scope_alloc(Scope *scope, size_t size);
-void   *scope_alloc_box(Scope *scope, Type* type);
+Ref     scope_alloc_ref(Scope *scope, size_t size, TypeId type, int ref_data);
 
 #endif /* _SCOPE_H_ */
