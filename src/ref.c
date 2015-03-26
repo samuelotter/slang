@@ -9,7 +9,7 @@
 #include <assert.h>
 
 uint32_t ref_hash32(uint32_t hash, Ref ref) {
-  switch (ref_type(ref.header)) {
+  switch (ref_type(ref)) {
   case TYPEID_ATOM:
     return atom_hash32(hash, ref.atom);
   case TYPEID_LIST:

@@ -20,6 +20,21 @@ Binary *read_file(Scope *scope, const char *filename) {
   return binary;
 }
 
+void pretty_print(List *list) {
+  printf("(");
+  while (!list_is_empty(list)) {
+    if (ref_type(list->value) == TYPEID_LIST) {
+      pretty_print(list->value.list);
+    } else if (ref_type(list->value) == TYPEID_BINARY) {
+      printf("%s ", list->value.binary->data);
+    } else {
+      printf("???");
+    }
+    list = list->next;
+  }
+  printf(")");
+}
+
 int main(int argc, char **argv) {
   if (argc < 2) {
     printf("Missing filename");

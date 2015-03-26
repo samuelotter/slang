@@ -29,8 +29,8 @@ typedef enum {
  */
 #define HEADER_TYPE_MASK 0x0F
 #define HEADER_TYPE_SIZE 4
-#define ref_type(HEADER) ((TypeId)(*(uint32_t*)HEADER & HEADER_TYPE_MASK))
-#define ref_data(HEADER) ((uint32_t)(*(uint32_t*)HEADER >> HEADER_TYPE_SIZE))
+#define ref_type(REF) ((TypeId)(*((Ref)REF).header & HEADER_TYPE_MASK))
+#define ref_data(REF) ((uint32_t)(*((Ref)REF).header >> HEADER_TYPE_SIZE))
 #define ref_is_type(TYPE, VALUE) ((get_type(*(uint32_t*)VALUE)) == TYPE)
 #define ref_header(TYPE, DATA)                                  \
   ((TYPE & HEADER_TYPE_MASK) | (DATA << HEADER_TYPE_SIZE))
