@@ -13,28 +13,19 @@ deftype(Atom);
 
 static Atom* atom_table[ATOM_TABLE_BUCKETS] = { 0 };
 
-_Bool lookup(const char* name, Atom** atom);
-void  insert(Atom* atom);
+static _Bool lookup(const char* name, Atom** atom);
+static void  insert(Atom* atom);
+static Atom *make_atom(const char *str, size_t len);
 
 /* API ************************************************************************/
 
 Atom* atom(const char* name) {
-  Atom* atom = NULL;
-  if (lookup(name, &atom)) {
-    return atom;
-  }
   size_t name_len = strnlen(name, ATOM_MAX_LENGTH);
-  assert(name_len <= ATOM_MAX_LENGTH);
+  return make_atom(name, name_len);
+}
 
-  atom = (Atom*)malloc(sizeof(Atom));
-  atom->hash   = crc32(0, name, strlen(name));
-  atom->next   = NULL;
-  atom->header = ref_header(TYPEID_ATOM, 0);
-  memset(atom->name, 0, ATOM_MAX_LENGTH + 1);
-  memcpy(atom->name, name, name_len);
-  atom->name[name_len] = 0;
-  insert(atom);
-  return atom;
+Atom *atom_from_binary(Binary *binary) {
+  return make_atom((char *)binary->data, binary->size);
 }
 
 uint32_t atom_hash32(uint32_t hash, Atom *atom) {
@@ -42,6 +33,24 @@ uint32_t atom_hash32(uint32_t hash, Atom *atom) {
 }
 
 /* Internal functions *********************************************************/
+
+Atom *make_atom(const char *name, size_t len) {
+  assert(name != NULL);
+  assert(len <= ATOM_MAX_LENGTH);
+  Atom* atom = NULL;
+  if (lookup(name, &atom)) {
+    return atom;
+  }
+  atom         = (Atom*)malloc(sizeof(Atom));
+  atom->hash   = crc32(0, name, strlen(name));
+  atom->next   = NULL;
+  atom->header = ref_header(TYPEID_ATOM, 0);
+  memset(atom->name, 0, ATOM_MAX_LENGTH + 1);
+  memcpy(atom->name, name, len);
+  atom->name[len] = 0;
+  insert(atom);
+  return atom;
+}
 
 _Bool lookup(const char* name, Atom** atom) {
   uint32_t hash = crc32(0, name, strlen(name));

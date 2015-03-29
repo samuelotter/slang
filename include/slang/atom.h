@@ -3,8 +3,9 @@
 
 #include <stddef.h>
 
-#include "type.h"
-#include "ref.h"
+#include <type.h>
+#include <ref.h>
+#include <binary.h>
 
 #define ATOM_MAX_LENGTH 255
 
@@ -24,6 +25,7 @@ reftype(Atom,
 /* API ***********************************************************************/
 
 Atom *atom(const char* name);
+Atom *atom_from_binary(Binary *binary);
 
 uint32_t atom_hash32(uint32_t hash, Atom *atom);
 
