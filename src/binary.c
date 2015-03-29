@@ -18,7 +18,7 @@ Binary *binary(Scope *scope, const uint8_t *data, size_t size) {
   Binary *binary = scope_alloc(scope, sizeof(Binary) + size + 1);
   binary->size   = size;
   binary->header = ref_header(TYPEID_BINARY, 0);
-  memcpy(binary->data, data, size + 1);
+  memcpy(binary->data, data, size);
   return binary;
 }
 
