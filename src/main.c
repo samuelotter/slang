@@ -6,6 +6,7 @@
 #include <binary.h>
 #include <syntax.h>
 #include <list.h>
+#include <atom.h>
 
 Binary *read_file(Scope *scope, const char *filename) {
   // TODO some kind of error handling...
@@ -20,19 +21,23 @@ Binary *read_file(Scope *scope, const char *filename) {
   return binary;
 }
 
-void pretty_print(List *list) {
-  printf("(");
-  while (!list_is_empty(list)) {
-    if (ref_type(list->value) == TYPEID_LIST) {
-      pretty_print(list->value.list);
-    } else if (ref_type(list->value) == TYPEID_BINARY) {
-      printf("%s ", list->value.binary->data);
-    } else {
-      printf("???");
-    }
-    list = list->next;
+void pretty_print(Ref value) {
+  // FIXME: no words required
+  static int indent = 0;
+  if (ref_is_type(TYPEID_LIST, value)) {
+    printf("(");
+    indent++;
+    list_foreach(value.list, pretty_print);
+    indent--;
+    printf(")");
+  } else if (ref_is_type(TYPEID_BINARY, value)) {
+    printf("\"%s\"", value.binary->data);
+  } else if (ref_is_type(TYPEID_ATOM, value)) {
+    printf("'%s'", value.atom->name);
+  } else {
+    printf("???");
   }
-  printf(")");
+  printf(" ");
 }
 
 int main(int argc, char **argv) {
@@ -45,10 +50,10 @@ int main(int argc, char **argv) {
   Scope *scope    = scope_begin();
   Binary *content = read_file(scope, filename);
   List *tokens    = syntax_tokenize(content);
+  assert(tokens != NULL);
   //  pretty_print(tokens);
-  List *expr      = syntax_parse(tokens);
+  Ref  expr       = syntax_parse(tokens);
   pretty_print(expr);
-  assert(expr != NULL);
   //ref_print(expr);
 
   scope_destroy(scope);
